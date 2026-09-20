@@ -3,11 +3,13 @@ import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import { CitizenLoginModal } from './components/CitizenLoginModal';
 import { OfficerLoginModal } from './components/OfficerLoginModal';
+import { api } from './api';
 
 import { LandingPage } from './pages/LandingPage';
 import { OfficerQueuePage } from './pages/OfficerQueuePage';
 import { OfficerCaseDetailPage } from './pages/OfficerCaseDetailPage';
 import { OfficerDecisionPage } from './pages/OfficerDecisionPage';
+import { OfficerAnalyticsPage } from './pages/OfficerAnalyticsPage';
 import { CitizenDashboard } from './pages/CitizenDashboard';
 import { RegisterPage } from './pages/RegisterPage';
 import { MembersPage } from './pages/MembersPage';
@@ -16,9 +18,24 @@ import { KinshipGraphPage } from './pages/KinshipGraphPage';
 import { GovLedgerAuditPage } from './pages/GovLedgerAuditPage';
 import { SmartCardPage } from './pages/SmartCardPage';
 
+const getInitialView = () => {
+  try {
+    const path = window.location.pathname.replace(/^\//, '').toLowerCase();
+    if (path === 'dashboard' || path === 'citizen') return 'dashboard';
+    if (path === 'requests') return 'requests';
+    if (path === 'members') return 'members';
+    if (path === 'schemes') return 'schemes';
+    if (path === 'smart-card') return 'smart-card';
+    if (path === 'graph' || path === 'kinship') return 'kinship';
+    if (path === 'audit' || path === 'ledger') return 'audit';
+    if (path.startsWith('officer')) return path;
+  } catch (e) {}
+  return 'landing';
+};
+
 export default function App() {
-  // Navigation & View State
-  const [currentView, setCurrentView] = useState('landing');
+  // Navigation & View State (synced with URL)
+  const [currentView, setCurrentView] = useState(getInitialView);
   
   // Authentication State
   const [currentUser, setCurrentUser] = useState(null); // Citizen session
@@ -29,9 +46,18 @@ export default function App() {
   const [officerLoginOpen, setOfficerLoginOpen] = useState(false);
 
   // Selected Detail State
-  const [activeFamilyId, setActiveFamilyId] = useState('GJ-2026-8849-012');
+  const [activeFamilyId, setActiveFamilyId] = useState(null);
   const [selectedCase, setSelectedCase] = useState(null);
   const [decisionData, setDecisionData] = useState(null);
+
+  // Sync browser popstate (back/forward button)
+  useEffect(() => {
+    const handlePopState = () => {
+      setCurrentView(getInitialView());
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   // Check stored auth session on startup
   useEffect(() => {
@@ -43,11 +69,32 @@ export default function App() {
       try {
         const u = JSON.parse(userStr);
         setCurrentUser({
-          full_name: u.full_name || 'Ramesh K. Patel',
+          full_name: u.full_name || 'Ramesh Patel',
           citizen_ref: u.citizen_ref,
-          family_id: famId || 'GJ-2026-8849-012'
+          family_id: famId
         });
         if (famId) setActiveFamilyId(famId);
+
+        // Refresh self profile from DB to ensure token is valid
+        api.getMyFamily().then(fam => {
+          if (fam.family_id) {
+            setActiveFamilyId(fam.family_id);
+            localStorage.setItem('ekparivaar_family_id', fam.family_id);
+            setCurrentUser(prev => ({
+              ...prev,
+              full_name: fam.full_name || prev?.full_name,
+              family_id: fam.family_id,
+              is_head: fam.is_head
+            }));
+          }
+        }).catch(() => {
+          // If token is expired or invalid, reset session cleanly
+          localStorage.removeItem('ekparivaar_token');
+          localStorage.removeItem('ekparivaar_user');
+          localStorage.removeItem('ekparivaar_family_id');
+          setCurrentUser(null);
+          setActiveFamilyId(null);
+        });
       } catch (e) {}
     }
 
@@ -63,14 +110,13 @@ export default function App() {
 
   const handleNavigate = (view, payload = null) => {
     // Guard Citizen protected routes
-    const citizenRoutes = ['dashboard', 'citizen', 'members', 'requests', 'smart-card'];
+    const citizenRoutes = ['dashboard', 'citizen', 'members', 'requests', 'smart-card', 'graph', 'kinship', 'audit', 'ledger'];
     if (citizenRoutes.includes(view) && !currentUser) {
       setCitizenLoginOpen(true);
-      return;
     }
 
     // Guard Officer protected routes
-    const officerRoutes = ['officer-queue', 'officer-case', 'officer-decision', 'officer-escalated'];
+    const officerRoutes = ['officer-queue', 'officer-case', 'officer-decision', 'officer-escalated', 'officer-analytics'];
     if (officerRoutes.includes(view) && !currentOfficer) {
       setOfficerLoginOpen(true);
       return;
@@ -84,28 +130,61 @@ export default function App() {
     }
 
     setCurrentView(view);
+    try {
+      window.history.pushState({}, '', view === 'landing' ? '/' : `/${view}`);
+    } catch (e) {}
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleCitizenLoginSuccess = (data) => {
+  const handleCitizenLoginSuccess = async (data) => {
+    let familyId = data.family_id || data.familyId || localStorage.getItem('ekparivaar_family_id');
+    let fullName = data.full_name || data.head?.full_name || 'Ramesh Patel';
+    let citizenRef = data.citizen_ref || data.head?.citizen_ref;
+    let isHead = false;
+
+    // Query DB for user's authoritative family linkage
+    try {
+      const myFam = await api.getMyFamily();
+      if (myFam.family_id) {
+        familyId = myFam.family_id;
+        localStorage.setItem('ekparivaar_family_id', myFam.family_id);
+      }
+      if (myFam.full_name) fullName = myFam.full_name;
+      if (myFam.citizen_ref) citizenRef = myFam.citizen_ref;
+      isHead = myFam.is_head;
+    } catch (err) {
+      console.warn('Family lookup fallback:', err);
+    }
+
     const userObj = {
-      full_name: data.full_name || data.head?.full_name || 'Ramesh K. Patel',
-      citizen_ref: data.citizen_ref || data.head?.citizen_ref,
-      family_id: data.family_id || 'GJ-2026-8849-012'
+      full_name: fullName,
+      citizen_ref: citizenRef,
+      family_id: familyId,
+      is_head: isHead
     };
+
     setCurrentUser(userObj);
-    setActiveFamilyId(userObj.family_id);
+    if (familyId) setActiveFamilyId(familyId);
     setCurrentView('dashboard');
+    try {
+      window.history.pushState({}, '', '/dashboard');
+    } catch (e) {}
   };
 
   const handleOfficerLoginSuccess = (data) => {
     const offObj = data.officer || {
       name: 'Amit Sharma',
-      role: 'Talati, Mehsana',
+      role: 'Talati, Ahmedabad',
       desk: 'Zone 04 • Revenue Desk'
     };
     setCurrentOfficer(offObj);
-    setCurrentView('officer-queue');
+    
+    // Route Collector and Mamlatdar to analytics, Talati to queue
+    if (offObj.role?.toLowerCase().includes('collector') || offObj.role?.toLowerCase().includes('mamlatdar')) {
+      setCurrentView('officer-analytics');
+    } else {
+      setCurrentView('officer-queue');
+    }
   };
 
   const handleCitizenLogout = () => {
@@ -113,6 +192,7 @@ export default function App() {
     localStorage.removeItem('ekparivaar_user');
     localStorage.removeItem('ekparivaar_family_id');
     setCurrentUser(null);
+    setActiveFamilyId(null);
     setCurrentView('landing');
   };
 
@@ -169,6 +249,7 @@ export default function App() {
           <CitizenDashboard 
             familyId={activeFamilyId}
             currentUser={currentUser}
+            currentView={currentView}
             onNavigate={handleNavigate}
           />
         )}
@@ -177,6 +258,7 @@ export default function App() {
         {currentView === 'members' && (
           <MembersPage 
             familyId={activeFamilyId}
+            currentUser={currentUser}
             onNavigate={handleNavigate}
           />
         )}
@@ -216,6 +298,7 @@ export default function App() {
         {/* 8. Officer Review Queue (Screenshot 2) */}
         {currentView === 'officer-queue' && (
           <OfficerQueuePage 
+            currentOfficer={currentOfficer}
             onSelectCase={handleSelectCase}
             onOpenEscalated={() => setCurrentView('officer-escalated')}
           />
@@ -245,6 +328,21 @@ export default function App() {
             decisionData={decisionData}
             onBackToQueue={() => setCurrentView('officer-queue')}
             onOpenNextCase={() => setCurrentView('officer-queue')}
+          />
+        )}
+
+        {/* 12. Officer District & State Analytics (District Collector / Mamlatdar) */}
+        {currentView === 'officer-analytics' && (
+          <OfficerAnalyticsPage 
+            onNavigate={handleNavigate}
+          />
+        )}
+
+        {/* 13. Household Registration Wizard */}
+        {currentView === 'register' && (
+          <RegisterPage 
+            onNavigate={handleNavigate}
+            onRegistrationSuccess={(res) => handleCitizenLoginSuccess(res)}
           />
         )}
       </main>

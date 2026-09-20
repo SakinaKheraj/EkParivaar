@@ -200,4 +200,45 @@ export const api = {
     }
     return res.json();
   },
+
+  // 17. Citizen Self Family Lookup
+  async getMyFamily() {
+    const res = await fetch(`${BASE_URL}/families/me`, { headers: getHeaders() });
+    if (!res.ok) throw new Error('Failed to get family info');
+    return res.json();
+  },
+
+  // 18. Officer Analytics Dashboard
+  async getOfficerAnalytics() {
+    const officerToken = localStorage.getItem('ekparivaar_officer_token');
+    const res = await fetch(`${BASE_URL}/officer/analytics`, {
+      headers: getHeaders(officerToken),
+    });
+    if (!res.ok) throw new Error('Failed to load officer analytics');
+    return res.json();
+  },
+
+  // 19. Officer Escalate Case
+  async escalateCase(flagId) {
+    const officerToken = localStorage.getItem('ekparivaar_officer_token');
+    const res = await fetch(`${BASE_URL}/officer/escalate/${flagId}`, {
+      method: 'POST',
+      headers: getHeaders(officerToken),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Escalation failed' }));
+      throw new Error(err.detail || 'Escalation failed');
+    }
+    return res.json();
+  },
+
+  // 20. Officer Me
+  async getOfficerMe() {
+    const officerToken = localStorage.getItem('ekparivaar_officer_token');
+    const res = await fetch(`${BASE_URL}/officer/me`, {
+      headers: getHeaders(officerToken),
+    });
+    if (!res.ok) throw new Error('Failed to get officer info');
+    return res.json();
+  },
 };

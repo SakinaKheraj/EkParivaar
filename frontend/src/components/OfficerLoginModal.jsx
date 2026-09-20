@@ -3,26 +3,24 @@ import { Building2, ArrowRight, RefreshCw, X, AlertCircle, Lock, Shield } from '
 import { api } from '../api';
 
 export function OfficerLoginModal({ isOpen, onClose, onLoginSuccess }) {
-  const [officerName, setOfficerName] = useState('Amit Sharma');
-  const [pin, setPin] = useState('1234');
+  const [officerName, setOfficerName] = useState('');
+  const [pin, setPin] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   if (!isOpen) return null;
 
-  const officers = [
-    { name: 'Amit Sharma', role: 'Talati, Mehsana • Zone 04 Desk' },
-    { name: 'Pooja Verma', role: 'Mamlatdar Supervisory Officer' },
-    { name: 'Suresh Patel', role: 'District Revenue Review Officer' }
-  ];
-
   const handleOfficerLogin = async (e) => {
     e.preventDefault();
+    if (!officerName.trim()) {
+      setError('Please enter your designated officer name.');
+      return;
+    }
     setError(null);
     setLoading(true);
 
     try {
-      const res = await api.officerLogin(officerName);
+      const res = await api.officerLogin(officerName.trim());
       onLoginSuccess(res);
       onClose();
     } catch (err) {
@@ -112,23 +110,22 @@ export function OfficerLoginModal({ isOpen, onClose, onLoginSuccess }) {
           <form onSubmit={handleOfficerLogin}>
             <div style={{ marginBottom: '1.25rem' }}>
               <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: 'var(--gov-text-title)', marginBottom: '0.35rem' }}>
-                Select Officer / Desk Cadre
+                Officer Full Name / Cadre ID
               </label>
-              <select
+              <input
+                type="text"
                 value={officerName}
                 onChange={(e) => setOfficerName(e.target.value)}
+                placeholder="e.g. Amit Sharma or Rajesh Kumar"
                 style={{
                   width: '100%',
-                  padding: '0.7rem',
+                  padding: '0.7rem 0.9rem',
                   borderRadius: '8px',
                   border: '1px solid var(--gov-border)',
-                  fontSize: '0.88rem'
+                  fontSize: '0.92rem'
                 }}
-              >
-                {officers.map((o, i) => (
-                  <option key={i} value={o.name}>{o.name} ({o.role})</option>
-                ))}
-              </select>
+                required
+              />
             </div>
 
             <div style={{ marginBottom: '1.5rem' }}>

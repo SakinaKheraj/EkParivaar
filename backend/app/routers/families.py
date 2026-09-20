@@ -10,6 +10,60 @@ router = APIRouter(prefix="/families", tags=["families"])
 MOCK_OTP = "123456"
 
 
+@router.get("/me")
+def get_my_family(user=Depends(get_current_user)):
+    """
+    Returns the authenticated citizen's own family membership.
+    Uses the JWT sub claim (citizen_ref) to find family_id — prevents IDOR.
+    """
+    if user["role"] != "citizen":
+        raise HTTPException(status_code=403, detail="Citizen role required")
+
+    citizen_ref = user["citizen_ref"]
+
+    # Find all active family memberships
+    membership = (
+        supabase.table("family_members")
+        .select("family_id, relationship_type, verification_status")
+        .eq("citizen_ref", citizen_ref)
+        .is_("removed_at", "null")
+        .execute()
+    )
+
+    citizen = (
+        supabase.table("citizens_registry")
+        .select("full_name, dob, gender, aadhaar_last4, mobile_number")
+        .eq("citizen_ref", citizen_ref)
+        .execute()
+    )
+
+    citizen_data = citizen.data[0] if citizen.data else {}
+    family_ids = [m["family_id"] for m in membership.data]
+    primary_family_id = family_ids[0] if family_ids else None
+
+    # Find which family this citizen is head of
+    head_family = (
+        supabase.table("families")
+        .select("family_id")
+        .eq("head_citizen_ref", citizen_ref)
+        .execute()
+    )
+    is_head = len(head_family.data) > 0
+
+    return {
+        "citizen_ref": citizen_ref,
+        "full_name": citizen_data.get("full_name", ""),
+        "aadhaar_last4": citizen_data.get("aadhaar_last4", ""),
+        "dob": citizen_data.get("dob"),
+        "gender": citizen_data.get("gender"),
+        "mobile_number": citizen_data.get("mobile_number"),
+        "family_id": primary_family_id,
+        "family_ids": family_ids,
+        "is_head": is_head,
+        "relationship_in_family": membership.data[0]["relationship_type"] if membership.data else None,
+    }
+
+
 def _lookup_citizen(aadhaar_number: str):
     aadhaar_hash = hash_aadhaar(aadhaar_number)
     result = (
@@ -83,13 +137,27 @@ def register_head(payload: RegisterHeadRequest):
 
 
 def _process_add_member(family_id: str, payload: AddMemberRequest, user: dict):
-    citizen = _lookup_citizen(payload.aadhaar_number)
-    if not citizen:
-        raise HTTPException(status_code=404, detail="Identity not found in registry")
-
     target_family_id = family_id or payload.family_id
     if not target_family_id:
         raise HTTPException(status_code=400, detail="family_id is required")
+
+    # Statutory Restriction: Only Head of Household can add or edit members
+    if user.get("role") == "citizen":
+        fam_check = (
+            supabase.table("families")
+            .select("head_citizen_ref")
+            .eq("family_id", target_family_id)
+            .execute()
+        )
+        if fam_check.data and fam_check.data[0].get("head_citizen_ref") != user.get("citizen_ref"):
+            raise HTTPException(
+                status_code=403,
+                detail="Statutory restriction: Only the Head of Household has legal authority to add or modify dependents."
+            )
+
+    citizen = _lookup_citizen(payload.aadhaar_number)
+    if not citizen:
+        raise HTTPException(status_code=404, detail="Identity not found in registry")
 
     rel_type = payload.relationship_type or payload.relationship_to_head or "dependent"
 

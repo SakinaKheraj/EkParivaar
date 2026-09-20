@@ -16,7 +16,7 @@ export default function Navbar({
 }) {
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
 
-  const isOfficerPortal = currentView.startsWith('officer-') || Boolean(currentOfficer);
+  const isOfficerPortal = currentView.startsWith('officer-') && Boolean(currentOfficer);
 
   // If in officer views
   if (isOfficerPortal && currentOfficer) {
@@ -118,6 +118,22 @@ export default function Navbar({
               </button>
 
               <button
+                onClick={() => setCurrentView('officer-analytics')}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  borderBottom: currentView === 'officer-analytics' ? '2px solid var(--gov-ochre-600)' : '2px solid transparent',
+                  padding: '0.6rem 0.9rem',
+                  fontWeight: currentView === 'officer-analytics' ? 700 : 500,
+                  color: currentView === 'officer-analytics' ? 'var(--gov-text-title)' : 'var(--gov-text-muted)',
+                  fontSize: '0.88rem',
+                  cursor: 'pointer'
+                }}
+              >
+                District Analytics
+              </button>
+
+              <button
                 onClick={() => setCurrentView('officer-escalated')}
                 style={{
                   background: 'none',
@@ -130,39 +146,7 @@ export default function Navbar({
                   cursor: 'pointer'
                 }}
               >
-                Escalated
-              </button>
-
-              <button
-                onClick={() => setCurrentView('graph')}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  borderBottom: currentView === 'graph' ? '2px solid var(--gov-ochre-600)' : '2px solid transparent',
-                  padding: '0.6rem 0.9rem',
-                  fontWeight: currentView === 'graph' ? 700 : 500,
-                  color: currentView === 'graph' ? 'var(--gov-text-title)' : 'var(--gov-text-muted)',
-                  fontSize: '0.88rem',
-                  cursor: 'pointer'
-                }}
-              >
-                Activity log
-              </button>
-
-              <button
-                onClick={() => setCurrentView('audit')}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  borderBottom: currentView === 'audit' ? '2px solid var(--gov-ochre-600)' : '2px solid transparent',
-                  padding: '0.6rem 0.9rem',
-                  fontWeight: currentView === 'audit' ? 700 : 500,
-                  color: currentView === 'audit' ? 'var(--gov-text-title)' : 'var(--gov-text-muted)',
-                  fontSize: '0.88rem',
-                  cursor: 'pointer'
-                }}
-              >
-                Reports
+                Escalated SLA
               </button>
             </nav>
           </div>
@@ -285,7 +269,13 @@ export default function Navbar({
           </span>
           <span style={{ opacity: 0.4 }}>|</span>
           <button
-            onClick={onOpenOfficerLogin}
+            onClick={() => {
+              if (currentOfficer) {
+                setCurrentView('officer-queue');
+              } else {
+                onOpenOfficerLogin();
+              }
+            }}
             style={{
               background: 'none',
               border: 'none',
@@ -327,10 +317,10 @@ export default function Navbar({
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
               <span style={{ fontSize: '1.35rem', fontWeight: 700, fontFamily: 'var(--font-serif)', color: 'var(--gov-text-title)' }}>
-                Gujarat Family ID
+                EkParivaar
               </span>
               <span style={{ fontSize: '0.8rem', color: 'var(--gov-ochre-600)', fontWeight: 600 }}>
-                / ગુજરાત ફેમિલી આઈડી
+                / એક પરિવાર
               </span>
             </div>
             <div style={{ fontSize: '0.72rem', color: 'var(--gov-text-muted)' }}>
@@ -357,6 +347,27 @@ export default function Navbar({
                 }}
               >
                 Home
+              </button>
+              <button 
+                onClick={() => {
+                  if (currentUser) {
+                    setCurrentView('dashboard');
+                  } else {
+                    onOpenCitizenLogin();
+                  }
+                }}
+                style={{
+                  background: (currentView === 'dashboard' || currentView === 'citizen') ? 'var(--gov-teal-50)' : 'transparent',
+                  color: (currentView === 'dashboard' || currentView === 'citizen') ? 'var(--gov-teal-800)' : 'var(--gov-text-body)',
+                  border: 'none',
+                  padding: '0.45rem 0.85rem',
+                  borderRadius: '6px',
+                  fontWeight: 500,
+                  fontSize: '0.88rem',
+                  cursor: 'pointer'
+                }}
+              >
+                Dashboard
               </button>
               <button 
                 onClick={() => setCurrentView('schemes')}
@@ -536,14 +547,19 @@ export default function Navbar({
                   alignItems: 'center',
                   justifyContent: 'center'
                 }}>
-                  RP
+                  {(currentUser.full_name || 'Citizen')
+                    .split(' ')
+                    .map(w => w[0])
+                    .join('')
+                    .slice(0, 2)
+                    .toUpperCase()}
                 </div>
                 <div style={{ textAlign: 'left' }}>
                   <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--gov-text-title)' }}>
-                    {currentUser.full_name || 'Ramesh K. Patel'}
+                    {currentUser.full_name || 'Citizen'}
                   </div>
                   <div style={{ fontSize: '0.68rem', color: 'var(--gov-text-muted)' }}>
-                    Head of Family
+                    {currentUser.is_head ? 'Head of Family' : 'Household Member'}
                   </div>
                 </div>
                 <ChevronDown size={14} color="var(--gov-text-muted)" />
@@ -564,10 +580,10 @@ export default function Navbar({
                 }}>
                   <div style={{ padding: '0.4rem 0.6rem', borderBottom: '1px solid var(--gov-border-subtle)', marginBottom: '0.4rem' }}>
                     <div style={{ fontSize: '0.7rem', color: 'var(--gov-text-muted)', textTransform: 'uppercase' }}>
-                      Gujarat Family ID
+                      Gujarat EkParivaar ID
                     </div>
                     <div style={{ fontSize: '0.85rem', fontWeight: 700, fontFamily: 'monospace', color: 'var(--gov-teal-950)' }}>
-                      {currentUser.family_id || 'GJ-2026-8849-012'}
+                      {currentUser.family_id || 'Assigned Household'}
                     </div>
                   </div>
 

@@ -31,6 +31,7 @@ export default function LandingPage({ onOpenLogin, onOpenSchemes, onTrackClick }
         <div style={{
           display: 'inline-flex',
           alignItems: 'center',
+          
           gap: '0.5rem',
           background: '#fef3f2',
           color: 'var(--gov-ochre-700)',
@@ -93,21 +94,44 @@ export default function LandingPage({ onOpenLogin, onOpenSchemes, onTrackClick }
           </button>
         </div>
 
-        {/* 2. FLOATING CITIZEN SMART PASS (Directly matching Mockup in Screenshot 1) */}
-        <div style={{
-          backgroundColor: '#061e1e',
-          backgroundImage: 'radial-gradient(circle at 100% 0%, #10433f 0%, #061e1e 70%)',
-          borderRadius: '20px',
-          padding: '2.5rem',
-          color: '#ffffff',
-          boxShadow: '0 25px 60px -15px rgba(6, 30, 30, 0.35)',
-          border: '1px solid rgba(20, 184, 166, 0.3)',
-          maxWidth: '920px',
-          margin: '0 auto',
-          textAlign: 'left',
-          position: 'relative',
-          overflow: 'hidden'
-        }}>
+        {/* 2. FLOATING CITIZEN SMART PASS (Sample Preview Mockup) */}
+        <div 
+          onClick={onOpenLogin}
+          style={{
+            backgroundColor: '#061e1e',
+            backgroundImage: 'radial-gradient(circle at 100% 0%, #10433f 0%, #061e1e 70%)',
+            borderRadius: '20px',
+            padding: '2.5rem',
+            color: '#ffffff',
+            boxShadow: '0 25px 60px -15px rgba(6, 30, 30, 0.35)',
+            border: '1px solid rgba(20, 184, 166, 0.3)',
+            maxWidth: '920px',
+            margin: '0 auto',
+            textAlign: 'left',
+            position: 'relative',
+            overflow: 'hidden',
+            cursor: 'pointer'
+          }}
+          title="Click to sign in with your Aadhaar ID"
+        >
+          {/* Sample Card Badge */}
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            backgroundColor: '#0d9488',
+            color: '#ffffff',
+            padding: '3px 12px',
+            borderRadius: '4px',
+            fontSize: '0.68rem',
+            fontWeight: 700,
+            letterSpacing: '0.06em',
+            marginBottom: '1rem',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+          }}>
+            <span>★</span> SAMPLE CITIZEN SMART CARD PREVIEW • CLICK TO SIGN IN WITH YOUR AADHAAR
+          </div>
+
           {/* Watermark Emblem */}
           <div style={{ position: 'absolute', right: '-20px', bottom: '-40px', opacity: 0.05, pointerEvents: 'none' }}>
             <Building2 size={340} />
@@ -122,7 +146,7 @@ export default function LandingPage({ onOpenLogin, onOpenSchemes, onTrackClick }
                   GOVERNMENT OF GUJARAT • ગુજરાત સરકાર
                 </span>
                 <div style={{ fontSize: '1.2rem', fontFamily: 'var(--font-serif)', fontWeight: 700 }}>
-                  Citizen Smart Pass
+                  Citizen Smart Pass (Sample)
                 </div>
               </div>
             </div>

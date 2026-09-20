@@ -18,13 +18,6 @@ export function RegisterPage({ onRegistrationSuccess, onNavigate }) {
   const [ekycResult, setEkycResult] = useState(null);
   const [createdFamily, setCreatedFamily] = useState(null);
 
-  // Quick Mock Identity Fillers
-  const quickFills = [
-    { label: 'Ramesh Patel (Ahmedabad)', aadhaar: '123412341001', district: 'Ahmedabad', income: 120000 },
-    { label: 'Kishore Patel (Surat)', aadhaar: '123412342001', district: 'Surat', income: 240000 },
-    { label: 'Bhavik Shah (Vadodara)', aadhaar: '123412343001', district: 'Vadodara', income: 85000 },
-  ];
-
   const handleVerifyEkyc = async (e) => {
     e.preventDefault();
     if (!aadhaarNumber || aadhaarNumber.length < 12) {
@@ -38,7 +31,7 @@ export function RegisterPage({ onRegistrationSuccess, onNavigate }) {
       setEkycResult(res);
       setStep(2);
     } catch (err) {
-      setError(err.message || 'e-KYC verification failed. Use sample Aadhaar 123412341001.');
+      setError(err.message || 'e-KYC verification failed. Use sample Aadhaar 111122223333.');
     } finally {
       setLoading(false);
     }
@@ -156,38 +149,6 @@ export function RegisterPage({ onRegistrationSuccess, onNavigate }) {
                 <p style={{ color: 'var(--gov-text-muted)', fontSize: '0.9rem' }}>
                   Authenticate the primary adult head via UIDAI e-KYC. This anchors the household on Gujarat GovLedger.
                 </p>
-              </div>
-
-              {/* Quick Fill Pills */}
-              <div style={{ backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem', border: '1px solid var(--gov-border-subtle)' }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--gov-text-muted)', marginBottom: '0.5rem', textTransform: 'uppercase' }}>
-                  Demo Sandbox: Click to Autofill Pre-verified Identity
-                </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                  {quickFills.map((qf, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => {
-                        setAadhaarNumber(qf.aadhaar);
-                        setDistrict(qf.district);
-                        setAnnualIncome(qf.income);
-                      }}
-                      style={{
-                        background: '#ffffff',
-                        border: '1px solid #cbd5e1',
-                        borderRadius: '6px',
-                        padding: '0.4rem 0.75rem',
-                        fontSize: '0.8rem',
-                        cursor: 'pointer',
-                        fontWeight: 500,
-                        color: 'var(--gov-text-body)'
-                      }}
-                    >
-                      {qf.label}
-                    </button>
-                  ))}
-                </div>
               </div>
 
               <form onSubmit={handleVerifyEkyc}>

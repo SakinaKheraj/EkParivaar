@@ -3,20 +3,13 @@ import { ShieldCheck, ArrowRight, RefreshCw, X, AlertCircle, CheckCircle2, User 
 import { api } from '../api';
 
 export function CitizenLoginModal({ isOpen, onClose, onLoginSuccess }) {
-  const [aadhaar, setAadhaar] = useState('111122223333');
+  const [aadhaar, setAadhaar] = useState('');
   const [otp, setOtp] = useState('123456');
   const [otpSent, setOtpSent] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   if (!isOpen) return null;
-
-  // Pre-configured citizen credentials for effortless authentic verification
-  const demoCitizens = [
-    { label: 'Ramesh K. Patel (Head)', aadhaar: '111122223333', district: 'Mehsana' },
-    { label: 'Manoj Desai (Surat)', aadhaar: '333344445555', district: 'Surat' },
-    { label: 'Sunita D. Shah (Kadi)', aadhaar: '222233334444', district: 'Mehsana' }
-  ];
 
   const handleSendOtp = (e) => {
     e.preventDefault();
@@ -35,25 +28,11 @@ export function CitizenLoginModal({ isOpen, onClose, onLoginSuccess }) {
     const cleanAadhaar = aadhaar.replace(/\s/g, '');
 
     try {
-      // 1. Try standard citizen login
-      let res;
-      try {
-        res = await api.loginCitizen(cleanAadhaar, otp);
-      } catch (loginErr) {
-        // If not found in DB yet, auto-register as head to establish the household
-        res = await api.registerHead({
-          aadhaar_number: cleanAadhaar,
-          otp: otp,
-          district: 'Mehsana',
-          annual_income: 160000,
-          attributes: { social_category: 'SEBC' }
-        });
-      }
-
+      const res = await api.loginCitizen(cleanAadhaar, otp);
       onLoginSuccess(res);
       onClose();
     } catch (err) {
-      setError(err.message || 'Authentication failed. Please verify credentials.');
+      setError(err.message || 'Authentication failed. Please verify credentials or register.');
     } finally {
       setLoading(false);
     }
@@ -78,7 +57,7 @@ export function CitizenLoginModal({ isOpen, onClose, onLoginSuccess }) {
         backgroundColor: '#ffffff',
         borderRadius: '16px',
         width: '100%',
-        maxWidth: '480px',
+        maxWidth: '460px',
         boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
         overflow: 'hidden',
         border: '1px solid var(--gov-border)'
@@ -129,34 +108,6 @@ export function CitizenLoginModal({ isOpen, onClose, onLoginSuccess }) {
               <AlertCircle size={16} /> {error}
             </div>
           )}
-
-          {/* Quick Preset Selector */}
-          <div style={{ backgroundColor: '#f8fafc', padding: '0.75rem', borderRadius: '8px', marginBottom: '1.25rem', border: '1px solid var(--gov-border-subtle)' }}>
-            <div style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--gov-text-muted)', marginBottom: '0.4rem', textTransform: 'uppercase' }}>
-              Select Registered Household Head:
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-              {demoCitizens.map((c, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => { setAadhaar(c.aadhaar); setOtp('123456'); }}
-                  style={{
-                    backgroundColor: aadhaar === c.aadhaar ? 'var(--gov-teal-50)' : '#ffffff',
-                    border: `1px solid ${aadhaar === c.aadhaar ? 'var(--gov-teal-700)' : 'var(--gov-border)'}`,
-                    color: aadhaar === c.aadhaar ? 'var(--gov-teal-900)' : 'var(--gov-text-body)',
-                    fontWeight: aadhaar === c.aadhaar ? 700 : 500,
-                    padding: '0.3rem 0.6rem',
-                    borderRadius: '6px',
-                    fontSize: '0.75rem',
-                    cursor: 'pointer'
-                  }}
-                >
-                  {c.label}
-                </button>
-              ))}
-            </div>
-          </div>
 
           <form onSubmit={handleVerifyLogin}>
             <div style={{ marginBottom: '1.25rem' }}>
